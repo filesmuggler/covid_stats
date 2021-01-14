@@ -34,7 +34,7 @@ def confirmed_per_day():
     ## CONFIRMED merge
     df_world_confirmed = pd.concat([df_country_confirmed, df_confirmed_usa_total])
 
-    # print(df_world_confirmed.shape)
+    print(df_world_confirmed.shape)
     # print(df_world_confirmed.tail(10))
 
     print(df_world_confirmed.shape)
