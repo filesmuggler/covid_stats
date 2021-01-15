@@ -34,20 +34,12 @@ def confirmed_per_day():
     ## CONFIRMED merge
     df_world_confirmed = pd.concat([df_country_confirmed, df_confirmed_usa_total])
 
-    print(df_world_confirmed.shape)
-    # print(df_world_confirmed.tail(10))
-
-    print(df_world_confirmed.shape)
     df_world_confirmed = df_world_confirmed.T
-    # print(df_world_confirmed.tail(10))
 
     #df_world_confirmed = df_world_confirmed.rename(columns={'Country/Region':'Date'})
 
-    print(df_world_confirmed.columns.values)
     df_world_confirmed.index.name = "Date"
-    print(df_world_confirmed.index.name)
-    print(df_world_confirmed.shape)
-
+    df_world_confirmed.index = pd.to_datetime(df_world_confirmed.index)
     return df_world_confirmed
 
 def deaths_per_day():
@@ -63,19 +55,25 @@ def deaths_per_day():
     # print(df_country_deaths.shape)
     # print(df_country_deaths.head(5))
 
-    ## CONFIRMED dumbfuckinstan
+    ## DEATH dumbfuckinstan
     df_deaths_usa = pd.read_csv(path_deaths_usa)
     df_deaths_usa.rename(columns={'Country_Region': 'Country/Region'}, inplace=True)
     df_deaths_usa_temp = pd.concat([df_deaths_usa.iloc[:, 7:8], df_deaths_usa.iloc[:, 12:]], axis=1)
     df_deaths_usa_total = df_deaths_usa_temp.groupby('Country/Region').agg('sum')
     # print(df_deaths_usa_total.head(5))
 
-    ## CONFIRMED merge
+    ## DEATH merge
     df_world_deaths = pd.concat([df_country_deaths, df_deaths_usa_total])
 
-    # print(df_world_deaths.tail(10))
 
+    df_world_deaths = df_world_deaths.T
+
+    # df_world_confirmed = df_world_confirmed.rename(columns={'Country/Region':'Date'})
+
+    df_world_deaths.index.name = "Date"
+    df_world_deaths.index = pd.to_datetime(df_world_deaths.index)
     return df_world_deaths
+
 
 def recovery_per_day():
     ## recovery global
@@ -109,11 +107,12 @@ def recovery_per_day():
 def main():
     # ## confirmed cases
     df_world_confirmed = confirmed_per_day()
-    # print(df_world_confirmed)
-    # ## deaths
-    # df_world_deaths = deaths_per_day()
-    # print(df_world_deaths)
-    #recovery_per_day()
+    print(df_world_confirmed)
+    print(type(df_world_confirmed.index))
+    ## deaths
+    df_world_deaths = deaths_per_day()
+    print(df_world_deaths)
+    print(type(df_world_deaths.index))
 
 if __name__=='__main__':
     main()
