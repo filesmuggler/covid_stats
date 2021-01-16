@@ -76,13 +76,13 @@ def main():
     df_mortality_rate = df_world_deaths_monthly/df_world_recovered_monthly
     df_mortality_rate = df_mortality_rate.replace([np.inf, -np.inf], np.nan)
     df_mortality_rate = df_mortality_rate.fillna(0)
-    #print(df_mortality_rate.head(10))
+    print(df_mortality_rate['Poland'])
 
     df_M = df_world_active.rolling(7).sum().fillna(0)
 
     df_M_5 = df_M.shift(5,fill_value=0)
     df_R = (df_M/df_M_5).fillna(0)
-    print(df_R)
+    #print(df_R['Poland'])
 
 
 
