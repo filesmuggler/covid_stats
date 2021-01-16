@@ -71,6 +71,18 @@ def main():
     df_world_recovered = recovery_per_day_no_usa()
     df_world_recovered['US']=df_usa_recovered
     df_world_active = df_world_confirmed - df_world_recovered - df_world_deaths
+    df_world_recovered_monthly = df_world_recovered.resample('1M').sum()
+    df_world_deaths_monthly = df_world_deaths.resample('1M').sum()
+    df_mortality_rate = df_world_deaths_monthly/df_world_recovered_monthly
+    df_mortality_rate = df_mortality_rate.replace([np.inf, -np.inf], np.nan)
+    df_mortality_rate = df_mortality_rate.fillna(0)
+    #print(df_mortality_rate.head(10))
+
+    df_M = df_world_active.rolling(7).sum().fillna(0)
+
+    df_M_5 = df_M.shift(5,fill_value=0)
+    df_R = (df_M/df_M_5).fillna(0)
+    print(df_R)
 
 
 
