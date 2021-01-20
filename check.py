@@ -1,8 +1,11 @@
+import copy
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
 import netCDF4
+import tqdm as tqdm
 from netCDF4 import Dataset
 
 path_confirmed_global = "data/time_series_covid19_confirmed_global.csv"
@@ -44,7 +47,6 @@ def deaths_per_day():
     df_world_deaths.index = pd.to_datetime(df_world_deaths.index)
     return df_world_deaths
 
-
 def recovery_per_day_no_usa():
     ## recovery global
     df_recovery_global = pd.read_csv(path_recovery_global)
@@ -60,8 +62,31 @@ def recovery_per_day_no_usa():
 
     return df_country_recovery
 
+def lon_lat_countries():
+    df_countries = pd.read_csv(path_confirmed_global)
+    df_countries = df_countries.iloc[:, 1:4]
+    df_c = df_countries.groupby('Country/Region').agg('mean')
+    return df_c
+
+def weather():
+    weather_min = Dataset('./weather/TerraClimate_tmin_2018.nc')
+    weather_max = Dataset('./weather/TerraClimate_tmax_2018.nc')
+    # w_max_lat = weather_max['lat'][:]
+    # w_max_lon = weather_max['lon'][:]
+    # pos_lon = 75.45
+    # geo_idx = (np.abs(pos_lon - w_max_lon)).argmin()
+    # print(geo_idx)
+    return weather_min, weather_max
+
+def GET_IDX(elem,vect):
+    idx = (np.abs(elem-vect)).argmin()
+    return idx
+
+def GET_TEMP(elem_x, elem_y,weather):
+    pass
+
 def main():
-    ## confirmed cases
+    # confirmed cases
     df_world_confirmed = confirmed_per_day()
     df_world_confirmed_14 = df_world_confirmed.shift(14,fill_value=0)
     ## deaths
@@ -76,14 +101,21 @@ def main():
     df_mortality_rate = df_world_deaths_monthly/df_world_recovered_monthly
     df_mortality_rate = df_mortality_rate.replace([np.inf, -np.inf], np.nan)
     df_mortality_rate = df_mortality_rate.fillna(0)
-    print(df_mortality_rate['Poland'])
+    #print(df_mortality_rate['Poland'])
 
     df_M = df_world_active.rolling(7).sum().fillna(0)
 
     df_M_5 = df_M.shift(5,fill_value=0)
     df_R = (df_M/df_M_5).fillna(0)
-    #print(df_R['Poland'])
+    w_min, w_max = weather()
+    lat_lon = lon_lat_countries()
+    lat_lon['Lat_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Lat'],w_min['lat'][:]),axis=1)
+    lat_lon['Long_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Long'],w_min['lon'][:]),axis=1)
 
+    temps = pd.DataFrame().reindex_like(df_world_deaths_monthly)
+    temps = temps.T
+
+    print(temps)
 
 
 
