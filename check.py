@@ -82,8 +82,13 @@ def GET_IDX(elem,vect):
     idx = (np.abs(elem-vect)).argmin()
     return idx
 
-def GET_TEMP(elem_x, elem_y,weather):
-    pass
+def GET_TEMP(elem_x, elem_y,w_min,w_max,date):
+    month = date.month - 1
+    temp_min = w_min[month][int(elem_x)][int(elem_y)]
+    temp_max = w_max[month][int(elem_x)][int(elem_y)]
+    temp_avg = (temp_max + temp_min) / 2.0
+    #return temp_min
+    return temp_avg
 
 def main():
     # confirmed cases
@@ -112,10 +117,18 @@ def main():
     lat_lon['Lat_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Lat'],w_min['lat'][:]),axis=1)
     lat_lon['Long_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Long'],w_min['lon'][:]),axis=1)
 
-    temps = pd.DataFrame().reindex_like(df_world_deaths_monthly)
-    temps = temps.T
+    #print(lat_lon)
 
-    print(temps)
+    temps = pd.DataFrame().reindex_like(df_world_deaths_monthly)
+    avg_temps = temps.T
+    dates = avg_temps.columns
+
+    w_min_np = w_min.variables['tmin'][:]
+    w_max_np = w_max.variables['tmax'][:]
+
+    for dt in dates:
+        avg_temps[dt] = lat_lon.apply(lambda row: GET_TEMP(row['Lat_idx'],row['Long_idx'],w_min_np,w_max_np,dt),axis=1)
+    print(avg_temps)
 
 
 
