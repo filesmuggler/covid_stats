@@ -143,17 +143,15 @@ def main():
     lat_lon = lon_lat_countries()
     lat_lon['Lat_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Lat'],w_min['lat'][:]),axis=1)
     lat_lon['Long_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Long'],w_min['lon'][:]),axis=1)
-    print(lat_lon.head(20))
-
 
     temps = pd.DataFrame().reindex_like(df_world_deaths_monthly)
     temps_min = temps.T
     temps_max = temps.T
 
     dates = temps_min.columns
-    print("dates: ",dates.month)
-    #
+
     w_min_np = w_min.variables['tmin'][:]
+
     print("w_min_np loaded")
     for dt in dates:
         temps_min[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'],row['Long_idx'],w_min_np,dt),axis=1)
@@ -167,7 +165,7 @@ def main():
     w_max_np = None
     print("w_max_np unloaded")
 
-    avg_temp = temps.T
+    #avg_temp = temps.T
     avg_temp = (temps_min + temps_max)/2.0
     print(avg_temp)
 
