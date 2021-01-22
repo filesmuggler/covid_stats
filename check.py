@@ -1,4 +1,5 @@
 import copy
+import time
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -18,8 +19,12 @@ def confirmed_per_day():
     ## CONFIRMED global
     df_confirmed_global = pd.read_csv(path_confirmed_global)
 
-    df_confirmed_global_temp = pd.concat([df_confirmed_global.iloc[:, 1:2], df_confirmed_global.iloc[:, 4:]], axis=1)
+    df_confirmed_global_temp = pd.concat([df_confirmed_global.iloc[:, 0:2], df_confirmed_global.iloc[:, 4:]], axis=1)
+    df_confirmed_global_temp['Country/Region'] = df_confirmed_global_temp['Country/Region'] + ('_' + df_confirmed_global_temp['Province/State']).fillna('')
+    df_confirmed_global_temp.drop(columns={'Province/State'}, inplace=True)
+    df_confirmed_global_temp = df_confirmed_global_temp.set_index('Country/Region')
     # check if there are any nans
+
     df_confirmed_global_temp = df_confirmed_global_temp.fillna(0)
     # sum by country
     df_country_confirmed = df_confirmed_global_temp.groupby('Country/Region').agg('sum')
@@ -35,7 +40,10 @@ def deaths_per_day():
     df_deaths_global = pd.read_csv(path_deaths_global)
     # print(df_deaths_global.head())
 
-    df_deaths_global_temp = pd.concat([df_deaths_global.iloc[:, 1:2], df_deaths_global.iloc[:, 4:]], axis=1)
+    df_deaths_global_temp = pd.concat([df_deaths_global.iloc[:, 0:2], df_deaths_global.iloc[:, 4:]], axis=1)
+    df_deaths_global_temp['Country/Region'] = df_deaths_global_temp['Country/Region'] + ('_' + df_deaths_global_temp['Province/State']).fillna('')
+    df_deaths_global_temp.drop(columns={'Province/State'}, inplace=True)
+    df_deaths_global_temp = df_deaths_global_temp.set_index('Country/Region')
     # check if there are any nans
     df_deaths_global_temp = df_deaths_global_temp.fillna(0)
     # sum by country
@@ -51,7 +59,10 @@ def recovery_per_day_no_usa():
     ## recovery global
     df_recovery_global = pd.read_csv(path_recovery_global)
 
-    df_recovery_global_temp = pd.concat([df_recovery_global.iloc[:, 1:2], df_recovery_global.iloc[:, 4:]], axis=1)
+    df_recovery_global_temp = pd.concat([df_recovery_global.iloc[:, 0:2], df_recovery_global.iloc[:, 4:]], axis=1)
+    df_recovery_global_temp['Country/Region'] = df_recovery_global_temp['Country/Region'] + ('_' + df_recovery_global_temp['Province/State']).fillna('')
+    df_recovery_global_temp.drop(columns={'Province/State'}, inplace=True)
+    df_recovery_global_temp = df_recovery_global_temp.set_index('Country/Region')
     # check if there are any nans
     df_recovery_global_temp = df_recovery_global_temp.fillna(0)
     # sum by country (no USA yet)
@@ -64,9 +75,19 @@ def recovery_per_day_no_usa():
 
 def lon_lat_countries():
     df_countries = pd.read_csv(path_confirmed_global)
-    df_countries = df_countries.iloc[:, 1:4]
-    df_c = df_countries.groupby('Country/Region').agg('mean')
-    return df_c
+    df_countries = df_countries.iloc[:, 0:4]
+    df_countries['Country/Region'] = df_countries['Country/Region'] + ('_' + df_countries['Province/State']).fillna('')
+    df_countries.drop(columns={'Province/State'}, inplace=True)
+    df_countries = df_countries.set_index('Country/Region')
+    #df_c = df_countries.groupby('Country/Region').agg('mean')
+    #return df_c
+    return df_countries
+
+# def lon_lat_countries():
+#     df_countries = pd.read_csv(path_confirmed_global)
+#     df_countries = df_countries.iloc[:, 1:4]
+#     df_c = df_countries.groupby('Country/Region').agg('mean')
+#     return df_c
 
 def weather():
     weather_min = Dataset('./weather/TerraClimate_tmin_2018.nc')
@@ -87,14 +108,21 @@ def GET_TEMP(elem_x, elem_y,w_min,w_max,date):
     temp_min = w_min[month][int(elem_x)][int(elem_y)]
     temp_max = w_max[month][int(elem_x)][int(elem_y)]
     temp_avg = (temp_max + temp_min) / 2.0
-    #return temp_min
-    return temp_avg
+    return temp_min
+    #return temp_avg
+
+def GET_SINGLE_TEMP(elem_x, elem_y,w_data,date):
+    month = date.month - 1
+    temp = w_data[month][int(elem_x)][int(elem_y)]
+    #print(temp)
+    temp = temp * 1.0
+    return temp
 
 def main():
     # confirmed cases
     df_world_confirmed = confirmed_per_day()
     df_world_confirmed_14 = df_world_confirmed.shift(14,fill_value=0)
-    ## deaths
+    # deaths
     df_world_deaths = deaths_per_day()
     df_world_deaths_14 = df_world_deaths.shift(14,fill_value=0)
     df_usa_recovered = df_world_confirmed_14['US'] - df_world_deaths_14['US']
@@ -106,7 +134,6 @@ def main():
     df_mortality_rate = df_world_deaths_monthly/df_world_recovered_monthly
     df_mortality_rate = df_mortality_rate.replace([np.inf, -np.inf], np.nan)
     df_mortality_rate = df_mortality_rate.fillna(0)
-    #print(df_mortality_rate['Poland'])
 
     df_M = df_world_active.rolling(7).sum().fillna(0)
 
@@ -116,19 +143,33 @@ def main():
     lat_lon = lon_lat_countries()
     lat_lon['Lat_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Lat'],w_min['lat'][:]),axis=1)
     lat_lon['Long_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Long'],w_min['lon'][:]),axis=1)
+    print(lat_lon.head(20))
 
-    #print(lat_lon)
 
     temps = pd.DataFrame().reindex_like(df_world_deaths_monthly)
-    avg_temps = temps.T
-    dates = avg_temps.columns
+    temps_min = temps.T
+    temps_max = temps.T
 
+    dates = temps_min.columns
+    print("dates: ",dates.month)
+    #
     w_min_np = w_min.variables['tmin'][:]
-    w_max_np = w_max.variables['tmax'][:]
-
+    print("w_min_np loaded")
     for dt in dates:
-        avg_temps[dt] = lat_lon.apply(lambda row: GET_TEMP(row['Lat_idx'],row['Long_idx'],w_min_np,w_max_np,dt),axis=1)
-    print(avg_temps)
+        temps_min[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'],row['Long_idx'],w_min_np,dt),axis=1)
+    w_min_np = None
+    print("w_min_np unloaded")
+    #
+    w_max_np = w_max.variables['tmax'][:]
+    print("w_max_np loaded")
+    for dt in dates:
+        temps_max[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'], row['Long_idx'], w_max_np, dt),axis=1)
+    w_max_np = None
+    print("w_max_np unloaded")
+
+    avg_temp = temps.T
+    avg_temp = (temps_min + temps_max)/2.0
+    print(avg_temp)
 
 
 
