@@ -135,7 +135,6 @@ def main():
 
     df_world_recovered = df_world_recovered.reindex(sorted(df_world_recovered.columns), axis=1)
 
-
     # active
     df_world_active = df_world_confirmed - df_world_recovered - df_world_deaths
 
@@ -158,32 +157,45 @@ def main():
     df_R_norm = df_R / df_R_max
     df_R_norm = df_R_norm.resample('1M').mean()
     df_R_norm = df_R_norm.T
-    print(df_R_norm)
+    #print(df_R_norm)
 
-    w_min, w_max = weather()
-    lat_lon = lon_lat_countries()
-    lat_lon['Lat_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Lat'],w_min['lat'][:]),axis=1)
-    lat_lon['Long_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Long'],w_min['lon'][:]),axis=1)
-
-    temps = pd.DataFrame().reindex_like(df_world_deaths_monthly)
-    temps_min = temps.T
-    temps_max = temps.T
-
-    dates = temps_min.columns
-
-    w_min_np = w_min.variables['tmin'][:]
-
-    for dt in dates:
-        temps_min[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'],row['Long_idx'],w_min_np,dt),axis=1)
-    w_min_np = None
+    # w_min, w_max = weather()
+    # lat_lon = lon_lat_countries()
+    # lat_lon['Lat_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Lat'],w_min['lat'][:]),axis=1)
+    # lat_lon['Long_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Long'],w_min['lon'][:]),axis=1)
     #
-    w_max_np = w_max.variables['tmax'][:]
-    for dt in dates:
-        temps_max[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'], row['Long_idx'], w_max_np, dt),axis=1)
-    w_max_np = None
+    # temps = pd.DataFrame().reindex_like(df_world_deaths_monthly)
+    # temps_min = temps.T
+    # temps_max = temps.T
+    #
+    # dates = temps_min.columns
+    #
+    # w_min_np = w_min.variables['tmin'][:]
+    #
+    # for dt in dates:
+    #     temps_min[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'],row['Long_idx'],w_min_np,dt),axis=1)
+    # w_min_np = None
+    # #
+    # w_max_np = w_max.variables['tmax'][:]
+    # for dt in dates:
+    #     temps_max[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'], row['Long_idx'], w_max_np, dt),axis=1)
+    # w_max_np = None
+    #
+    # avg_temp = (temps_min + temps_max)/2.0
+    # print(avg_temp)
 
-    avg_temp = (temps_min + temps_max)/2.0
-    print(avg_temp)
+    buckets = pd.DataFrame().reindex_like(df_R_norm)
+    buckets = buckets.T
+    buckets.insert(0, '<0', [0 for i in range(len(buckets.index))])
+    buckets.insert(1, '0-10', [0 for i in range(len(buckets.index))])
+    buckets.insert(2, '10-20', [0 for i in range(len(buckets.index))])
+    buckets.insert(3, '20-30', [0 for i in range(len(buckets.index))])
+    buckets.insert(4, '>30', [0 for i in range(len(buckets.index))])
+    buckets = buckets.iloc[:,0:5]
+    buckets = buckets.T
+    print(buckets)
+    buckets.loc['<0']['2020-01-31'] += 1
+    print(buckets)
 
 
 
