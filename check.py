@@ -85,20 +85,9 @@ def lon_lat_countries():
     #return df_c
     return df_countries
 
-# def lon_lat_countries():
-#     df_countries = pd.read_csv(path_confirmed_global)
-#     df_countries = df_countries.iloc[:, 1:4]
-#     df_c = df_countries.groupby('Country/Region').agg('mean')
-#     return df_c
-
 def weather():
     weather_min = Dataset('./weather/TerraClimate_tmin_2018.nc')
     weather_max = Dataset('./weather/TerraClimate_tmax_2018.nc')
-    # w_max_lat = weather_max['lat'][:]
-    # w_max_lon = weather_max['lon'][:]
-    # pos_lon = 75.45
-    # geo_idx = (np.abs(pos_lon - w_max_lon)).argmin()
-    # print(geo_idx)
     return weather_min, weather_max
 
 def GET_IDX(elem,vect):
@@ -132,17 +121,22 @@ def main():
     # deaths
     df_world_deaths = deaths_per_day()
     df_world_deaths_14 = df_world_deaths.shift(14,fill_value=0)
+    # recovered
+    # USA case
     df_usa_recovered = df_world_confirmed_14['US'] - df_world_deaths_14['US']
     df_world_recovered = recovery_per_day_no_usa()
     df_world_recovered['US']=df_usa_recovered
 
-    df_reco_columns = df_world_recovered.columns
-    df_death_columns = df_world_deaths.columns
-    df_conf_columns = df_world_confirmed.columns
+    # Canada case
+    canada_names = [col for col in df_world_confirmed if col.startswith('Canada')]
+    df_canada_recovered = df_world_confirmed_14[canada_names] - df_world_deaths_14[canada_names]
+    df_world_recovered = df_world_recovered.drop(columns={'Canada'})
+    df_world_recovered[canada_names]=df_canada_recovered
 
-    diff_conf_reco_cols = df_conf_columns.difference(df_reco_columns)
-    diff_conf_death_cols = df_conf_columns.difference(df_death_columns)
+    df_world_recovered = df_world_recovered.reindex(sorted(df_world_recovered.columns), axis=1)
 
+
+    # active
     df_world_active = df_world_confirmed - df_world_recovered - df_world_deaths
 
     df_world_active = df_world_active.dropna(axis=1)
@@ -154,43 +148,43 @@ def main():
     df_mortality_rate_month = df_mortality_rate_month.replace([np.inf, -np.inf], np.nan)
     df_mortality_rate_month = df_mortality_rate_month.fillna(0)
 
-    df_M = df_world_active.rolling(7).sum().fillna(0)
+    df_M = df_world_active.rolling(7).mean().fillna(0)
 
     df_M_5 = df_M.shift(5,fill_value=0)
-    df_R = (df_M/df_M_5).fillna(0)
-    df_R = df_R.T
-    print(df_R)
-    #print(df_R.index.values)
+    df_R = (df_M/df_M_5)
+    df_R = df_R.replace([np.inf, -np.inf], np.nan)
 
-    # w_min, w_max = weather()
-    # lat_lon = lon_lat_countries()
-    # lat_lon['Lat_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Lat'],w_min['lat'][:]),axis=1)
-    # lat_lon['Long_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Long'],w_min['lon'][:]),axis=1)
-    #
-    # temps = pd.DataFrame().reindex_like(df_world_deaths_monthly)
-    # temps_min = temps.T
-    # temps_max = temps.T
-    #
-    # dates = temps_min.columns
-    #
-    # w_min_np = w_min.variables['tmin'][:]
-    #
-    # for dt in dates:
-    #     temps_min[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'],row['Long_idx'],w_min_np,dt),axis=1)
-    # w_min_np = None
-    # #
-    # w_max_np = w_max.variables['tmax'][:]
-    # for dt in dates:
-    #     temps_max[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'], row['Long_idx'], w_max_np, dt),axis=1)
-    # w_max_np = None
-    #
-    # #avg_temp = temps.T
-    # avg_temp = (temps_min + temps_max)/2.0
-    # print(avg_temp)
+    df_R_max = df_R.max(axis=0)
+    df_R_norm = df_R / df_R_max
+    df_R_norm = df_R_norm.resample('1M').mean()
+    df_R_norm = df_R_norm.T
+    print(df_R_norm)
 
-    df_R_max = df_R.max(axis=1)
+    w_min, w_max = weather()
+    lat_lon = lon_lat_countries()
+    lat_lon['Lat_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Lat'],w_min['lat'][:]),axis=1)
+    lat_lon['Long_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Long'],w_min['lon'][:]),axis=1)
 
-    print(df_R_max)
+    temps = pd.DataFrame().reindex_like(df_world_deaths_monthly)
+    temps_min = temps.T
+    temps_max = temps.T
+
+    dates = temps_min.columns
+
+    w_min_np = w_min.variables['tmin'][:]
+
+    for dt in dates:
+        temps_min[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'],row['Long_idx'],w_min_np,dt),axis=1)
+    w_min_np = None
+    #
+    w_max_np = w_max.variables['tmax'][:]
+    for dt in dates:
+        temps_max[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'], row['Long_idx'], w_max_np, dt),axis=1)
+    w_max_np = None
+
+    avg_temp = (temps_min + temps_max)/2.0
+    print(avg_temp)
+
 
 
 
