@@ -9,6 +9,8 @@ import netCDF4
 import tqdm as tqdm
 from netCDF4 import Dataset
 
+from scipy.stats import normaltest
+
 path_confirmed_global = "data/time_series_covid19_confirmed_global.csv"
 path_confirmed_usa = "data/time_series_covid19_confirmed_US.csv"
 path_deaths_global = "data/time_series_covid19_deaths_global.csv"
@@ -112,7 +114,9 @@ def GET_SINGLE_TEMP(elem_x, elem_y,w_data,date):
 def custom_resampler(array_like):
     return array_like[-1]-array_like[0]
 
-
+def BUCKET_TEMP(temp,dt):
+    print(temp[dt])
+    return 3
 
 def main():
     # confirmed cases
@@ -155,9 +159,8 @@ def main():
 
     df_R_max = df_R.max(axis=0)
     df_R_norm = df_R / df_R_max
-    df_R_norm = df_R_norm.resample('1M').mean()
-    df_R_norm = df_R_norm.T
-    #print(df_R_norm)
+    df_R_norm_month = df_R_norm.resample('1M').mean()
+    df_R_norm_month = df_R_norm_month.T
 
     w_min, w_max = weather()
     lat_lon = lon_lat_countries()
@@ -183,18 +186,36 @@ def main():
 
     avg_temp = (temps_min + temps_max)/2.0
 
-    buckets = pd.DataFrame().reindex_like(df_R_norm)
-    buckets = buckets.T
-    buckets.insert(0, '<0', [0 for i in range(len(buckets.index))])
-    buckets.insert(1, '0-10', [0 for i in range(len(buckets.index))])
-    buckets.insert(2, '10-20', [0 for i in range(len(buckets.index))])
-    buckets.insert(3, '20-30', [0 for i in range(len(buckets.index))])
-    buckets.insert(4, '>30', [0 for i in range(len(buckets.index))])
-    buckets = buckets.iloc[:,0:5]
-    buckets = buckets.T
-    #buckets.loc['<0']['2020-01-31'] += 1
+    buckets = pd.DataFrame().reindex_like(df_R_norm_month)
+    #buckets = buckets.T
+    # buckets.insert(0, '<0', [0 for i in range(len(buckets.index))])
+    # buckets.insert(1, '0-10', [0 for i in range(len(buckets.index))])
+    # buckets.insert(2, '10-20', [0 for i in range(len(buckets.index))])
+    # buckets.insert(3, '20-30', [0 for i in range(len(buckets.index))])
+    # buckets.insert(4, '>30', [0 for i in range(len(buckets.index))])
+    # buckets = buckets.iloc[:,0:5]
+    # buckets = buckets.T
+    # buckets = buckets.rename_axis("Avg temp", axis="rows")
+    # #buckets.loc['<0']['2020-01-31'] += 1
+    #
+    # # for dt in dates:
+    # #     buckets[dt]=buckets.apply(lambda row: BUCKET_TEMP(avg_temp,dt),axis=1)
+    # for dt in dates:
+    #     buckets.loc['<0'][dt] = len(list(filter(lambda x: x < 0, avg_temp[dt])))
+    #     buckets.loc['0-10'][dt] = len(list(filter(lambda x: (x > 0 and x<10), avg_temp[dt])))
+    #     buckets.loc['10-20'][dt] = len(list(filter(lambda x: (x > 10 and x<20), avg_temp[dt])))
+    #     buckets.loc['20-30'][dt] = len(list(filter(lambda x: (x > 20 and x<30), avg_temp[dt])))
+    #     buckets.loc['>30'][dt] = len(list(filter(lambda x: x>30, avg_temp[dt])))
+
+
+    #for dt in dates:
+
 
     # anova to do
+    # print(df_R_norm_month)
+    # print(avg_temp)
+    #print(normaltest(buckets.T.iloc[:].values))
+    print(buckets)
 
 if __name__=='__main__':
     main()
