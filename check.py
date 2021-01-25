@@ -194,6 +194,8 @@ def main():
     buckets = buckets.T
     #buckets.loc['<0']['2020-01-31'] += 1
 
+    # anova to do
+
 if __name__=='__main__':
     main()
 
