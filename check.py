@@ -9,7 +9,8 @@ import netCDF4
 import tqdm as tqdm
 from netCDF4 import Dataset
 
-from scipy.stats import normaltest
+from scipy.stats import normaltest, f_oneway
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
 path_confirmed_global = "data/time_series_covid19_confirmed_global.csv"
 path_confirmed_usa = "data/time_series_covid19_confirmed_US.csv"
@@ -118,6 +119,11 @@ def BUCKET_TEMP(temp,dt):
     print(temp[dt])
     return 3
 
+def remove_nan(a):
+    a = np.asarray(a)
+    b = a[np.logical_not(np.isnan(a))]
+    return b
+
 def main():
     # confirmed cases
     df_world_confirmed = confirmed_per_day()
@@ -186,36 +192,41 @@ def main():
 
     avg_temp = (temps_min + temps_max)/2.0
 
-    buckets = pd.DataFrame().reindex_like(df_R_norm_month)
-    #buckets = buckets.T
-    # buckets.insert(0, '<0', [0 for i in range(len(buckets.index))])
-    # buckets.insert(1, '0-10', [0 for i in range(len(buckets.index))])
-    # buckets.insert(2, '10-20', [0 for i in range(len(buckets.index))])
-    # buckets.insert(3, '20-30', [0 for i in range(len(buckets.index))])
-    # buckets.insert(4, '>30', [0 for i in range(len(buckets.index))])
-    # buckets = buckets.iloc[:,0:5]
-    # buckets = buckets.T
-    # buckets = buckets.rename_axis("Avg temp", axis="rows")
-    # #buckets.loc['<0']['2020-01-31'] += 1
-    #
-    # # for dt in dates:
-    # #     buckets[dt]=buckets.apply(lambda row: BUCKET_TEMP(avg_temp,dt),axis=1)
-    # for dt in dates:
-    #     buckets.loc['<0'][dt] = len(list(filter(lambda x: x < 0, avg_temp[dt])))
-    #     buckets.loc['0-10'][dt] = len(list(filter(lambda x: (x > 0 and x<10), avg_temp[dt])))
-    #     buckets.loc['10-20'][dt] = len(list(filter(lambda x: (x > 10 and x<20), avg_temp[dt])))
-    #     buckets.loc['20-30'][dt] = len(list(filter(lambda x: (x > 20 and x<30), avg_temp[dt])))
-    #     buckets.loc['>30'][dt] = len(list(filter(lambda x: x>30, avg_temp[dt])))
+    below_zero = []
+    zero_to_ten = []
+    ten_to_twenty = []
+    twenty_to_thirty = []
+    over_thirty = []
 
+    for dt in dates:
+        below_zero.extend(list(df_R_norm_month[dt].loc[avg_temp.index[avg_temp[dt]<0]].values))
+        zero_to_ten.extend(list(df_R_norm_month[dt].loc[avg_temp.index[(avg_temp[dt]>0) & (avg_temp[dt]<10)]].values))
+        ten_to_twenty.extend(list(df_R_norm_month[dt].loc[avg_temp.index[(avg_temp[dt]>10) & (avg_temp[dt]<20)]].values))
+        twenty_to_thirty.extend(list(df_R_norm_month[dt].loc[avg_temp.index[(avg_temp[dt]>20) & (avg_temp[dt]<30)]].values))
+        over_thirty.extend(list(df_R_norm_month[dt].loc[avg_temp.index[avg_temp[dt]>30]].values))
 
-    #for dt in dates:
+    below_zero = remove_nan(below_zero)
+    zero_to_ten = remove_nan(zero_to_ten)
+    ten_to_twenty = remove_nan(ten_to_twenty)
+    twenty_to_thirty = remove_nan(twenty_to_thirty)
+    over_thirty = remove_nan(over_thirty)
 
+    print(normaltest(below_zero))
+    print(normaltest(zero_to_ten))
+    print(normaltest(ten_to_twenty))
+    print(normaltest(twenty_to_thirty))
+    print(normaltest(over_thirty))
 
-    # anova to do
-    # print(df_R_norm_month)
-    # print(avg_temp)
-    #print(normaltest(buckets.T.iloc[:].values))
-    print(buckets)
+    f_value, p_value = f_oneway(below_zero,zero_to_ten,ten_to_twenty,twenty_to_thirty,over_thirty)
+    print("F-stat: ",f_value," p-val: ",p_value)
+
+    print(pairwise_tukeyhsd(np.concatenate([below_zero,zero_to_ten,ten_to_twenty,twenty_to_thirty,over_thirty]),
+                            np.concatenate([['below_zero'] * len(below_zero),
+                                            ['zero_to_ten'] * len(zero_to_ten),
+                                            ['ten_to_twenty'] * len(ten_to_twenty),
+                                            ['twenty_to_thirty'] * len(twenty_to_thirty),
+                                            ['over_thirty'] * len(over_thirty)])))
+
 
 if __name__=='__main__':
     main()
