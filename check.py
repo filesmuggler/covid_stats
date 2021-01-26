@@ -9,7 +9,7 @@ import netCDF4
 import tqdm as tqdm
 from netCDF4 import Dataset
 
-from scipy.stats import normaltest, f_oneway
+from scipy.stats import normaltest, f_oneway, chisquare
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
 path_confirmed_global = "data/time_series_covid19_confirmed_global.csv"
@@ -124,24 +124,24 @@ def remove_nan(a):
     b = a[np.logical_not(np.isnan(a))]
     return b
 
-def main():
+def task_1():
     # confirmed cases
     df_world_confirmed = confirmed_per_day()
-    df_world_confirmed_14 = df_world_confirmed.shift(14,fill_value=0)
+    df_world_confirmed_14 = df_world_confirmed.shift(14, fill_value=0)
     # deaths
     df_world_deaths = deaths_per_day()
-    df_world_deaths_14 = df_world_deaths.shift(14,fill_value=0)
+    df_world_deaths_14 = df_world_deaths.shift(14, fill_value=0)
     # recovered
     # USA case
     df_usa_recovered = df_world_confirmed_14['US'] - df_world_deaths_14['US']
     df_world_recovered = recovery_per_day_no_usa()
-    df_world_recovered['US']=df_usa_recovered
+    df_world_recovered['US'] = df_usa_recovered
 
     # Canada case
     canada_names = [col for col in df_world_confirmed if col.startswith('Canada')]
     df_canada_recovered = df_world_confirmed_14[canada_names] - df_world_deaths_14[canada_names]
     df_world_recovered = df_world_recovered.drop(columns={'Canada'})
-    df_world_recovered[canada_names]=df_canada_recovered
+    df_world_recovered[canada_names] = df_canada_recovered
 
     df_world_recovered = df_world_recovered.reindex(sorted(df_world_recovered.columns), axis=1)
 
@@ -153,14 +153,14 @@ def main():
     df_world_recovered_monthly = df_world_recovered.resample('1M').apply(custom_resampler)
     df_world_deaths_monthly = df_world_deaths.resample('1M').apply(custom_resampler)
 
-    df_mortality_rate_month = df_world_deaths_monthly/df_world_recovered_monthly
+    df_mortality_rate_month = df_world_deaths_monthly / df_world_recovered_monthly
     df_mortality_rate_month = df_mortality_rate_month.replace([np.inf, -np.inf], np.nan)
     df_mortality_rate_month = df_mortality_rate_month.fillna(0)
 
     df_M = df_world_active.rolling(7).mean().fillna(0)
 
-    df_M_5 = df_M.shift(5,fill_value=0)
-    df_R = (df_M/df_M_5)
+    df_M_5 = df_M.shift(5, fill_value=0)
+    df_R = (df_M / df_M_5)
     df_R = df_R.replace([np.inf, -np.inf], np.nan)
 
     df_R_max = df_R.max(axis=0)
@@ -170,8 +170,8 @@ def main():
 
     w_min, w_max = weather()
     lat_lon = lon_lat_countries()
-    lat_lon['Lat_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Lat'],w_min['lat'][:]),axis=1)
-    lat_lon['Long_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Long'],w_min['lon'][:]),axis=1)
+    lat_lon['Lat_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Lat'], w_min['lat'][:]), axis=1)
+    lat_lon['Long_idx'] = lat_lon.apply(lambda row: GET_IDX(row['Long'], w_min['lon'][:]), axis=1)
 
     temps = pd.DataFrame().reindex_like(df_world_deaths_monthly)
     temps_min = temps.T
@@ -182,15 +182,17 @@ def main():
     w_min_np = w_min.variables['tmin'][:]
 
     for dt in dates:
-        temps_min[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'],row['Long_idx'],w_min_np,dt),axis=1)
+        temps_min[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'], row['Long_idx'], w_min_np, dt),
+                                      axis=1)
     w_min_np = None
     #
     w_max_np = w_max.variables['tmax'][:]
     for dt in dates:
-        temps_max[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'], row['Long_idx'], w_max_np, dt),axis=1)
+        temps_max[dt] = lat_lon.apply(lambda row: GET_SINGLE_TEMP(row['Lat_idx'], row['Long_idx'], w_max_np, dt),
+                                      axis=1)
     w_max_np = None
 
-    avg_temp = (temps_min + temps_max)/2.0
+    avg_temp = (temps_min + temps_max) / 2.0
 
     below_zero = []
     zero_to_ten = []
@@ -199,11 +201,14 @@ def main():
     over_thirty = []
 
     for dt in dates:
-        below_zero.extend(list(df_R_norm_month[dt].loc[avg_temp.index[avg_temp[dt]<0]].values))
-        zero_to_ten.extend(list(df_R_norm_month[dt].loc[avg_temp.index[(avg_temp[dt]>0) & (avg_temp[dt]<10)]].values))
-        ten_to_twenty.extend(list(df_R_norm_month[dt].loc[avg_temp.index[(avg_temp[dt]>10) & (avg_temp[dt]<20)]].values))
-        twenty_to_thirty.extend(list(df_R_norm_month[dt].loc[avg_temp.index[(avg_temp[dt]>20) & (avg_temp[dt]<30)]].values))
-        over_thirty.extend(list(df_R_norm_month[dt].loc[avg_temp.index[avg_temp[dt]>30]].values))
+        below_zero.extend(list(df_R_norm_month[dt].loc[avg_temp.index[avg_temp[dt] < 0]].values))
+        zero_to_ten.extend(
+            list(df_R_norm_month[dt].loc[avg_temp.index[(avg_temp[dt] > 0) & (avg_temp[dt] < 10)]].values))
+        ten_to_twenty.extend(
+            list(df_R_norm_month[dt].loc[avg_temp.index[(avg_temp[dt] > 10) & (avg_temp[dt] < 20)]].values))
+        twenty_to_thirty.extend(
+            list(df_R_norm_month[dt].loc[avg_temp.index[(avg_temp[dt] > 20) & (avg_temp[dt] < 30)]].values))
+        over_thirty.extend(list(df_R_norm_month[dt].loc[avg_temp.index[avg_temp[dt] > 30]].values))
 
     below_zero = remove_nan(below_zero)
     zero_to_ten = remove_nan(zero_to_ten)
@@ -217,15 +222,54 @@ def main():
     print(normaltest(twenty_to_thirty))
     print(normaltest(over_thirty))
 
-    f_value, p_value = f_oneway(below_zero,zero_to_ten,ten_to_twenty,twenty_to_thirty,over_thirty)
-    print("F-stat: ",f_value," p-val: ",p_value)
+    f_value, p_value = f_oneway(below_zero, zero_to_ten, ten_to_twenty, twenty_to_thirty, over_thirty)
+    print("F-stat: ", f_value, " p-val: ", p_value)
 
-    print(pairwise_tukeyhsd(np.concatenate([below_zero,zero_to_ten,ten_to_twenty,twenty_to_thirty,over_thirty]),
+    print(pairwise_tukeyhsd(np.concatenate([below_zero, zero_to_ten, ten_to_twenty, twenty_to_thirty, over_thirty]),
                             np.concatenate([['below_zero'] * len(below_zero),
                                             ['zero_to_ten'] * len(zero_to_ten),
                                             ['ten_to_twenty'] * len(ten_to_twenty),
                                             ['twenty_to_thirty'] * len(twenty_to_thirty),
                                             ['over_thirty'] * len(over_thirty)])))
+
+
+def task_2():
+    print("task2")
+    # confirmed cases
+    df_world_confirmed = confirmed_per_day()
+    df_world_confirmed = df_world_confirmed.T
+    df_world_confirmed_last = df_world_confirmed.iloc[:,-1:]
+    # deaths
+    df_world_deaths = deaths_per_day()
+    df_world_deaths = df_world_deaths.T
+    df_world_deaths_last = df_world_deaths.iloc[:,-1:]
+
+    lat_lon = lon_lat_countries()
+
+    # europe 70 > lat > 35 ; -30 < long < 50
+
+    europe = lat_lon.loc[(lat_lon['Lat']<70) & (lat_lon['Lat']>35) & (lat_lon['Long']<60) & (lat_lon['Long']>-30)]
+
+    df_world_confirmed_last_eu = df_world_confirmed_last.loc[europe.index]
+    df_world_deaths_last_eu = df_world_deaths_last.loc[europe.index]
+
+    df_eu = df_world_deaths_last_eu/df_world_confirmed_last_eu
+
+    sum_eu = df_eu.sum().values
+
+    exp = np.array([1/len(df_eu) for x in range(len(df_eu))]) * sum_eu
+
+    obs = df_eu.values
+
+    chi2, p = chisquare(obs, exp)
+
+    print("test")
+
+
+def main():
+    task_2()
+
+
 
 
 if __name__=='__main__':
