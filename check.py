@@ -329,7 +329,7 @@ def task_2_2():
 
 def main():
     #task_1()
-    task_2_2()
+    task_2_1()
 
 
 
