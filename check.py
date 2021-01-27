@@ -232,9 +232,8 @@ def task_1():
                                             ['twenty_to_thirty'] * len(twenty_to_thirty),
                                             ['over_thirty'] * len(over_thirty)])))
 
-
-def task_2():
-    print("task2")
+def task_2_1():
+    print("task2_!")
     # confirmed cases
     df_world_confirmed = confirmed_per_day()
     df_world_confirmed = df_world_confirmed.T
@@ -263,11 +262,74 @@ def task_2():
 
     chi2, p = chisquare(obs, exp)
 
+
     print("test")
+
+def task_2_2():
+    print("task_2_2")
+    # confirmed cases
+    df_world_confirmed = confirmed_per_day()
+    df_world_confirmed_t = df_world_confirmed.T
+    # deaths
+    df_world_deaths = deaths_per_day()
+    df_world_deaths_t = df_world_deaths.T
+    # recovered
+    df_world_recovered = recovery_per_day_no_usa()
+    df_world_recovered_t = df_world_recovered.T
+
+    lat_lon = lon_lat_countries()
+
+    # europe 70 > lat > 35 ; -30 < long < 50
+
+    europe_filter = lat_lon.loc[(lat_lon['Lat'] < 70) & (lat_lon['Lat'] > 35) & (lat_lon['Long'] < 60) & (lat_lon['Long'] > -30)]
+
+    df_eu_confirmed = df_world_confirmed_t.loc[europe_filter.index]
+    df_eu_deaths = df_world_deaths_t.loc[europe_filter.index]
+    df_eu_recovered = df_world_recovered_t.loc[europe_filter.index]
+
+    # active
+    df_eu_active = df_eu_confirmed - df_eu_deaths - df_eu_recovered
+    df_eu_active = df_eu_active.T
+    df_eu_active = df_eu_active.dropna(axis=1)
+
+    df_eu_recovered = df_eu_recovered.T
+    df_eu_deaths = df_eu_deaths.T
+
+    df_eu_recovered_monthly = df_eu_recovered.resample('1M').apply(custom_resampler)
+    df_eu_deaths_monthly = df_eu_deaths.resample('1M').apply(custom_resampler)
+
+
+    df_mortality_rate_month = df_eu_deaths_monthly / df_eu_recovered_monthly
+    df_mortality_rate_month = df_mortality_rate_month.replace([np.inf, -np.inf], np.nan)
+    df_mortality_rate_month = df_mortality_rate_month.fillna(0)
+
+    df_M = df_eu_active.rolling(7).mean().fillna(0)
+
+    df_M_5 = df_M.shift(5, fill_value=0)
+    df_R = (df_M / df_M_5)
+    df_R = df_R.replace([np.inf, -np.inf], np.nan)
+
+    df_R_max = df_R.max(axis=0)
+    df_R_norm = df_R / df_R_max
+    df_R_norm_month = df_R_norm.resample('1M').mean()
+
+    df_R_nm_np = df_R_norm_month.to_numpy()
+
+    R = df_R_nm_np.tolist()
+
+    R_new = []
+    for c in R:
+        R_new.append(remove_nan(c))
+
+    R_new = [x for x in R_new if x != []]
+
+    f_value, p_value = f_oneway(*[col for col in R_new])
+    print(f'F-stat: {f_value}, p-val: {p_value}')
 
 
 def main():
-    task_2()
+    #task_1()
+    task_2_2()
 
 
 
