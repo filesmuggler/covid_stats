@@ -239,6 +239,12 @@ def task_1():
                                             ['ten_to_twenty'] * len(ten_to_twenty),
                                             ['twenty_to_thirty'] * len(twenty_to_thirty),
                                             ['over_thirty'] * len(over_thirty)])))
+    print("## WNIOSKI:\n\
+    Wyniki testu na normalność rozkładów dla poszczegolnych przedziałów temperatur sygnalizują, że\n\
+    ich rozkłady odbiegają od normalnego (w każdym wypadku p << 0.05)\n\
+    Po podaniu danych do testu anova wynik p jest również bliski zero co każe nam odrzucić hipotezę o niezależnosci\n\
+    zmiennych. Wynika z że rozprzestrzenianie się wirusa jest zależne od temperatury, co stoi w sprzeczności z danymi\n\
+    publikowanymi na stronie pacjent.gov.pl.")
 
     ## WNIOSKI
     # Wyniki testu na normalność rozkładów dla poszczegolnych przedziałów temperatur sygnalizują, że
@@ -249,7 +255,7 @@ def task_1():
     # publikowanymi na stronie pacjent.gov.pl.
 
 def task_2_1():
-    print("task2_1")
+    print("\n\ntask2_1")
     # confirmed cases
     df_world_confirmed = confirmed_per_day()
     df_world_confirmed = df_world_confirmed.T
@@ -277,13 +283,18 @@ def task_2_1():
     obs = df_eu.values
 
     chi2, p = chisquare(obs, exp)
-    print(chi2,p)
+
+
+    print("p_value: ",p)
+
+    print("## WNIOSKI: \nPorównując do rozkładu równomiernego p=1 dla każdego przypadku , wiec zachowujemy hipoteze zerowa, czyli\nnie istnieją istotne różnice w śmiertelności z powodu Covid-19\n\n")
+
     ## WNIOSKI
     # Porównując do rozkładu równomiernego p=1 dla każdego przypadku , wiec zachowujemy hipoteze zerowa, czyli
     # nie istnieją istotne różnice w śmiertelności z powodu Covid-19
 
 def task_2_2():
-    print("task_2_2")
+    print("\n\ntask_2_2")
     # confirmed cases
     df_world_confirmed = confirmed_per_day()
     df_world_confirmed_t = df_world_confirmed.T
@@ -341,14 +352,15 @@ def task_2_2():
     R_new = [x for x in R_new if x != []]
 
     f_value, p_value = f_oneway(*[col for col in R_new])
-    print(f'F-stat: {f_value}, p-val: {p_value}')
+    print("p_value: ",p_value)
 
+    print("## WNIOSKI: \nPorównano zależność smiertelności pomiędzy krajami w Europie, p<<0, więc można odrzucić hipoteze zerową,\nże nie ma zależności i zbadać na czym polegam taka zależność\n\n")
     ## WNIOSKI
     # Porównano zależność smiertelności pomiędzy krajami w Europie, p<<0, więc można odrzucić hipoteze zerową,
     # że nie ma zależności i zbadać na czym polegam taka zależność
 
 def main():
-    ## UWAGA task_1 może zabierać dużo pamięci RAM ze względu na szybkie ładowanie danych o temperaturze
+    print("UWAGA task_1 może zabierać dużo pamięci RAM ze względu na szybkie ładowanie danych o temperaturze")
     task_1()
     task_2_1()
     task_2_2()
